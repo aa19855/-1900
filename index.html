@@ -1,0 +1,792 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>الشجرة الخاصة</title>
+  <!-- استخدام خط "Cairo" للعناوين -->
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --icon-bg: linear-gradient(135deg, #66BB6A, #388E3C);
+      --icon-bg-hover: linear-gradient(135deg, #4CAF50, #2E7D32);
+      --button-bg: #4CAF50;
+    }
+    body {
+      font-family: 'Cairo', sans-serif;
+    }
+    /* شاشة تسجيل الدخول */
+    #loginOverlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0, 0, 0, 0.85);
+      z-index: 2000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      color: white;
+    }
+    .login-container {
+      background: #fff;
+      padding: 30px;
+      border-radius: 10px;
+      text-align: center;
+      width: 320px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+      color: #333;
+    }
+    .login-container h2 { margin-bottom: 20px; }
+    .role-options {
+      margin: 20px 0;
+      display: flex;
+      justify-content: space-around;
+    }
+    .role-btn {
+      padding: 10px 15px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: box-shadow 0.2s;
+    }
+    .role-btn.active { box-shadow: 0 0 10px rgba(0,0,0,0.5); }
+    .admin-btn { background: #007BFF; color: #fff; }
+    .editor-btn { background: #28A745; color: #fff; }
+    .visitor-btn { background: #6C757D; color: #fff; }
+    .login-btn {
+      padding: 10px 20px;
+      background: #007BFF;
+      border: none;
+      border-radius: 5px;
+      color: #fff;
+      font-size: 16px;
+      cursor: pointer;
+      margin-top: 15px;
+    }
+    #passwordContainer { margin-top: 10px; }
+    #passwordInput {
+      width: 80%;
+      padding: 8px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+    #loginError { color: red; margin-top: 10px; font-size: 14px; display: none; }
+    .login-links {
+      margin-top: 15px;
+      font-size: 14px;
+    }
+    .login-links a {
+      text-decoration: none;
+      margin: 0 5px;
+      color: #007BFF;
+    }
+    .login-links a:hover { text-decoration: underline; }
+    
+    /* الشكل العام للصفحة */
+    html, body {
+      margin: 0;
+      padding: 0;
+      background-color: #e3f2fd;
+      text-align: center;
+      overflow-x: auto;
+    }
+    body {
+      margin-top: 120px;
+      padding: 20px;
+    }
+    
+    /* لوحة التحكم */
+    #controlPanel {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #ffffff;
+      padding: 12px 10px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+      text-align: center;
+      z-index: 1001;
+    }
+    #controlPanel button {
+      display: block;
+      width: 100%;
+      margin: 6px 0;
+      font-size: 14px;
+      padding: 6px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    #controlPanel button:hover { opacity: 0.9; }
+    /* أزرار التكبير والتصغير */
+    #zoomControls button {
+      width: 45%;
+      display: inline-block;
+      margin: 0 2%;
+    }
+    #toggleColorPanelBtn { background: #FF9800; color: #fff; }
+    #backBtn { background: #2196F3; color: #fff; }
+    /* لوحة تغيير ألوان الأيقونات */
+    #colorPanel {
+      display: none;
+      margin-top: 10px;
+      padding: 10px;
+      background: #fafafa;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      width: 260px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    }
+    #colorPanel span { font-weight: bold; margin-right: 10px; }
+    .color-btn {
+      width: 40px;
+      height: 40px;
+      border: 2px solid #fff;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s, box-shadow 0.2s;
+      display: inline-block;
+      margin: 5px;
+    }
+    .color-btn:hover { transform: scale(1.1); box-shadow: 0 0 8px rgba(0,0,0,0.3); }
+    
+    /* الشجرة – تصميم هرمي أفقي مع خطوط متعرجة تشبه أغصان الشجرة */
+    .tree {
+      margin: 50px auto;
+      width: 90%;
+      position: relative;
+      padding-top: 20px;
+    }
+    .tree ul {
+      display: flex;
+      justify-content: center;
+      padding: 0;
+      margin: 0 auto;
+      position: relative;
+    }
+    .tree ul::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 0;
+      height: 20px;
+      border-left: 2px solid #8B4513;
+      border-top: 2px solid #8B4513;
+      border-top-left-radius: 20px;
+      transform: translateX(-50%);
+    }
+    .tree li {
+      list-style-type: none;
+      position: relative;
+      padding: 20px 10px 0;
+      text-align: center;
+      flex: 1;
+    }
+    .tree li::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 50%;
+      width: 50%;
+      height: 0;
+      border-top: 2px solid #8B4513;
+      border-top-right-radius: 20px;
+    }
+    .tree li::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      width: 50%;
+      height: 0;
+      border-top: 2px solid #8B4513;
+      border-top-left-radius: 20px;
+    }
+    .tree li:only-child::before,
+    .tree li:only-child::after {
+      display: none;
+    }
+    .tree li:first-child::before {
+      border: none;
+    }
+    .tree li:last-child::after {
+      border: none;
+    }
+    
+    #fixedVerse {
+      margin: 0 auto 20px;
+      width: 90%;
+      padding: 10px;
+      border: 2px solid #8B4513;
+      border-radius: 10px;
+      background: #fff3e0;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+      line-height: 1.4;
+      color: #6d4c41;
+    }
+    #fixedVerse p { margin: 4px 0; }
+    .root-title {
+      font-size: 24px;
+      font-weight: bold;
+      color: #2c3e50;
+      margin-top: 10px;
+    }
+    
+    .member-box {
+      display: inline-block;
+      padding: 8px 12px;
+      background: var(--icon-bg);
+      color: #7d0909;
+      border-radius: 50% 30% / 30% 50%;
+      margin: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      transition: transform 0.2s, background 0.3s;
+    }
+    .member-box:hover { transform: scale(1.1); background: var(--icon-bg-hover); }
+
+    /* زر "إضافة ابن" بحجم صغير مستطيل */
+    .add-child-btn {
+      margin-top: 3px;
+      background: var(--button-bg);
+      color: #657290;
+      border: none;
+      padding: 2px 8px;
+      border-radius: 3px;
+      font-size: 10px;
+      cursor: pointer;
+      display: inline-block;
+    }
+    .add-child-btn::before {
+      content: "🍃 ";
+      font-size: 10px;
+    }
+    
+    /* النوافذ */
+    .info-box {
+      display: none;
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: #fff;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.2);
+      text-align: center;
+      z-index: 3000;
+      width: 300px;
+    }
+    .info-box img {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      margin-bottom: 10px;
+    }
+    .close-btn, .edit-btn, .delete-btn {
+      background: #f44336;
+      color: #fff;
+      border: none;
+      padding: 5px 10px;
+      cursor: pointer;
+      border-radius: 5px;
+      margin-top: 10px;
+    }
+    .edit-btn { background: #4CAF50; margin-right: 5px; }
+    .delete-btn { background: #e53935; }
+    #editForm, #addChildForm { display: none; margin-top: 10px; }
+    #editForm input, #addChildForm input {
+      margin: 5px;
+      padding: 5px;
+      width: 80%;
+    }
+    #editForm button, #addChildForm button {
+      margin: 5px;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <!-- لوحة التحكم -->
+  <div id="controlPanel">
+    <button id="grantPermissionsBtn" onclick="openPermissionsModal()">إعطاء الصلاحيات</button>
+    <div id="zoomControls">
+      <button id="zoomInBtn">تكبير</button>
+      <button id="zoomOutBtn">تصغير</button>
+    </div>
+    <button id="toggleColorPanelBtn" onclick="toggleColorPanel()">تغيير ألوان الأيقونات</button>
+    <div id="colorPanel">
+      <span>اختر اللون:</span>
+      <div class="color-btn" style="background: linear-gradient(135deg, #66BB6A, #388E3C);" onclick="changeIconColor('#66BB6A', '#388E3C')"></div>
+      <div class="color-btn" style="background: linear-gradient(135deg, #42A5F5, #1E88E5);" onclick="changeIconColor('#42A5F5', '#1E88E5')"></div>
+      <div class="color-btn" style="background: linear-gradient(135deg, #FF7043, #D84315);" onclick="changeIconColor('#FF7043', '#D84315')"></div>
+      <div class="color-btn" style="background: linear-gradient(135deg, #AB47BC, #8E24AA);" onclick="changeIconColor('#AB47BC', '#8E24AA')"></div>
+      <div class="color-btn" style="background: linear-gradient(135deg, #FFA726, #FB8C00);" onclick="changeIconColor('#FFA726', '#FB8C00')"></div>
+    </div>
+    <button id="backBtn" onclick="goBack()">الرجوع</button>
+  </div>
+
+  <!-- نافذة تعديل الأكواد -->
+  <div id="permissionsModal" class="info-box" style="width: 320px;">
+    <h2>تعديل أكواد الدخول</h2>
+    <p>كود المشرف العام:</p>
+    <input type="text" id="newAdminCode" value="111111"><br>
+    <p>كود المحرر:</p>
+    <input type="text" id="newEditorCode" value="123456"><br>
+    <p>كود الزائر:</p>
+    <input type="text" id="newVisitorCode" value="1212"><br>
+    <p>رقم الهاتف (اتصل بنا):</p>
+    <input type="text" id="newContactNumber" value="0123456789"><br>
+    <p>رقم واتساب (لطلب الكود):</p>
+    <input type="text" id="newWhatsAppNumber" value="0123456789"><br>
+    <button onclick="savePermissions()">حفظ التغييرات</button>
+    <button onclick="closePermissionsModal()">إلغاء</button>
+  </div>
+
+  <!-- نافذة تسجيل الدخول -->
+  <div id="loginOverlay">
+    <div class="login-container">
+      <p style="font-size: 12px; margin-bottom: 5px;">هذا العمل اهداء من ابنكم مصطفى فواز الزعبي</p> 
+
+      <h2>تسجيل الدخول</h2>
+      <div class="role-options">
+        <button class="role-btn admin-btn" data-role="admin" onclick="selectRole(this)">مشرف عام</button>
+        <button class="role-btn editor-btn" data-role="editor" onclick="selectRole(this)">محرر</button>
+        <button class="role-btn visitor-btn" data-role="visitor" onclick="selectRole(this)">زائر</button>
+      </div>
+      <div id="passwordContainer">
+        <input type="password" id="passwordInput" placeholder="أدخل الرمز السري">
+      </div>
+      <button class="login-btn" onclick="login()">دخول</button>
+      <p id="loginError"></p>
+      <div class="login-links">
+        <a id="forgotLink" href="#" onclick="alert('يرجى الاتصال بالدعم'); return false;">نسيت الكود</a> |
+        <a id="contactLink" href="tel:0123456789">اتصل بنا</a> |
+        <a id="whatsAppLink" href="https://wa.me/0123456789">اطلب كود للدخول</a>
+      </div>
+    </div>
+  </div>
+  
+  <!-- الشجرة الديناميكية -->
+  <div class="tree" id="treeRoot">
+    <!-- سيُنشأ قسم fixedVerse ديناميكيًا في renderTree() -->
+  </div>
+
+  <!-- نافذة عرض المعلومات ونموذج التحرير -->
+  <div id="infoBox" class="info-box">
+    <img id="infoImage" src="" alt="صورة">
+    <h2 id="infoName"></h2>
+    <p>📅 تاريخ الميلاد: <span id="infoBirth"></span></p>
+    <p>⚰ تاريخ الوفاة: <span id="infoDeath"></span></p>
+    <p>📍 مكان الإقامة: <span id="infoLocation"></span></p>
+    <button class="edit-btn" id="editBtn" onclick="openEditForm()">تعديل المعلومات</button>
+    <button class="delete-btn" onclick="confirmDelete()">حذف الاسم</button>
+    <button class="close-btn" onclick="closeInfo()">إغلاق</button>
+    <div id="editForm">
+      <input type="text" id="editName" placeholder="الاسم"><br>
+      <input type="text" id="editBirth" placeholder="تاريخ الميلاد"><br>
+      <input type="text" id="editDeath" placeholder="تاريخ الوفاة"><br>
+      <input type="text" id="editLocation" placeholder="مكان الإقامة"><br>
+      <input type="file" id="editImageFile" accept="image/*"><br>
+      <button onclick="saveEdit()">حفظ</button>
+      <button onclick="closeEditForm()">إلغاء</button>
+    </div>
+  </div>
+
+  <!-- نافذة نموذج إضافة ابن -->
+  <div id="addChildForm" class="info-box">
+    <h2>إضافة ابن</h2>
+    <input type="text" id="childName" placeholder="الاسم"><br>
+    <input type="text" id="childBirth" placeholder="تاريخ الميلاد"><br>
+    <input type="text" id="childDeath" placeholder="تاريخ الوفاة"><br>
+    <input type="text" id="childLocation" placeholder="مكان الإقامة"><br>
+    <input type="text" id="childImage" placeholder="رابط الصورة"><br>
+    <button onclick="saveChild()">حفظ</button>
+    <button onclick="closeAddChildForm()">إلغاء</button>
+  </div>
+
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      // حفظ الأكواد في localStorage عند تحميل الصفحة
+      if (!localStorage.getItem("adminCode")) {
+    localStorage.setItem("adminCode", "111111");
+}
+if (!localStorage.getItem("editorCode")) {
+    localStorage.setItem("editorCode", "123456");
+}
+if (!localStorage.getItem("visitorCode")) {
+    localStorage.setItem("visitorCode", "1212");
+}
+
+
+      // تحميل بيانات الشجرة من localStorage أو استخدام بيانات افتراضية
+      let treeData = localStorage.getItem("treeData")
+        ? JSON.parse(localStorage.getItem("treeData"))
+        : {
+            id: 1,
+            name: "الجد محمد",
+            birth: "1920",
+            death: "2000",
+            location: "المدينة القديمة",
+            image: "https://via.placeholder.com/100",
+            children: []
+          };
+
+      // دالة لحفظ بيانات الشجرة في localStorage
+      window.saveTreeData = function() {
+        localStorage.setItem("treeData", JSON.stringify(treeData));
+      };
+
+      // دالة لإنشاء HTML لكل عقدة في الشجرة مع زر "إضافة ابن"
+      function createNodeHTML(node) {
+        let html = `<li data-id="${node.id}">
+          <div class="member-box" onclick="showInfo(this)">
+            ${node.name}
+          </div>
+          <br>
+          <button class="add-child-btn" onclick="openAddChildForm(event, this)">إضافة ابن</button>`;
+        if (node.children && node.children.length > 0) {
+          html += `<ul>`;
+          node.children.forEach(child => {
+            html += createNodeHTML(child);
+          });
+          html += `</ul>`;
+        }
+        html += `</li>`;
+        return html;
+      }
+
+      // دالة لبناء الشجرة وعرضها
+      window.renderTree = function() {
+        const container = document.getElementById("treeRoot");
+        container.innerHTML = "";
+        // إضافة قسم الآية والعنوان
+        const fixedVerse = document.createElement("div");
+        fixedVerse.id = "fixedVerse";
+        fixedVerse.innerHTML = `
+          <p>﷽</p>
+          <p>يَا أَيُّهَا النَّاسُ إِنَّا خَلَقْنَاكُم</p>
+          <p>مِّن ذَكَرٍ وَأُنثَىٰ وَجَعَلْنَاكُمْ شُعُوبًا وَقَبَائِلَ لِتَعَارَفُوا ۚ إِنَّ أَكْرَمَكُمْ عِندَ اللَّهِ أَتْقَاكُمْ ۚ إِنَّ اللَّهَ عَلِيمٌ خَبِيرٌ</p>
+          <p>صدق الله العظيم</p>
+          <p class="root-title">◥ ツالشجرة الخاصه أل بكار الزعبيツ ◤</p>
+        `;
+        container.appendChild(fixedVerse);
+
+        const ul = document.createElement("ul");
+        ul.innerHTML = createNodeHTML(treeData);
+        container.appendChild(ul);
+      };
+
+      // عند تحميل الصفحة، عرض الشجرة
+      renderTree();
+
+      /******************* دوال التحكم *******************/
+      let currentScale = 1;
+      // دالة التكبير
+      window.zoomIn = function() {
+        currentScale += 0.1;
+        let treeElem = document.querySelector('.tree');
+        if (treeElem) {
+          treeElem.style.transform = `scale(${currentScale})`;
+          treeElem.style.transformOrigin = 'top center';
+        }
+      };
+      // دالة التصغير
+      window.zoomOut = function() {
+        if (currentScale > 0.2) {
+          currentScale -= 0.1;
+          let treeElem = document.querySelector('.tree');
+          if (treeElem) {
+            treeElem.style.transform = `scale(${currentScale})`;
+            treeElem.style.transformOrigin = 'top center';
+          }
+        }
+      };
+      window.goBack = function() {
+        window.location.reload();
+      };
+
+      // تشغيل التكبير والتصغير عند الضغط المستمر
+      const zoomInBtn = document.getElementById("zoomInBtn");
+      const zoomOutBtn = document.getElementById("zoomOutBtn");
+      let zoomInInterval, zoomOutInterval;
+      if (zoomInBtn) {
+        zoomInBtn.addEventListener("mousedown", function(e) {
+          e.preventDefault();
+          zoomInInterval = setInterval(zoomIn, 100);
+        });
+        zoomInBtn.addEventListener("mouseup", function() {
+          clearInterval(zoomInInterval);
+        });
+        zoomInBtn.addEventListener("mouseleave", function() {
+          clearInterval(zoomInInterval);
+        });
+      }
+      if (zoomOutBtn) {
+        zoomOutBtn.addEventListener("mousedown", function(e) {
+          e.preventDefault();
+          zoomOutInterval = setInterval(zoomOut, 100);
+        });
+        zoomOutBtn.addEventListener("mouseup", function() {
+          clearInterval(zoomOutInterval);
+        });
+        zoomOutBtn.addEventListener("mouseleave", function() {
+          clearInterval(zoomOutInterval);
+        });
+      }
+
+      /******************* تشغيل التركيز التلقائي *******************/
+      window.selectRole = function(btn) {
+        selectedRole = btn.getAttribute("data-role");
+        document.querySelectorAll(".role-btn").forEach(b => b.classList.remove("active"));
+        btn.classList.add("active");
+        document.getElementById("passwordContainer").style.display = "block";
+        document.getElementById("passwordInput").focus();
+        const err = document.getElementById("loginError");
+        err.style.display = "none"; 
+        err.innerText = "";
+      };
+
+      /******************* تسجيل الدخول *******************/
+      window.login = function() {
+        if (!selectedRole) {
+          showError("الرجاء اختيار الدور");
+          return;
+        }
+        const pass = document.getElementById("passwordInput").value.trim();
+        // استخدام trim للقيم المخزنة أيضاً
+        if (selectedRole === "admin" && pass !== (localStorage.getItem("adminCode") || "").trim()) {
+          showError("رمز الدخول غير صحيح للمشرف");
+          return;
+        } else if (selectedRole === "editor" && pass !== (localStorage.getItem("editorCode") || "").trim()) {
+          showError("رمز الدخول غير صحيح للمحرر");
+          return;
+        } else if (selectedRole === "visitor" && pass !== (localStorage.getItem("visitorCode") || "").trim()) {
+          showError("رمز الدخول غير صحيح للزائر");
+          return;
+        }
+        userRole = selectedRole;
+        document.getElementById("loginOverlay").style.display = "none";
+        updatePermissions();
+      };
+      window.showError = function(msg) {
+        const err = document.getElementById("loginError");
+        err.innerText = msg;
+        err.style.display = "block";
+      };
+      window.updatePermissions = function() {
+        const addBtns = document.querySelectorAll(".add-child-btn");
+        const editBtn = document.getElementById("editBtn");
+        const grantBtn = document.getElementById("grantPermissionsBtn");
+        if (userRole === "visitor") {
+          addBtns.forEach(btn => btn.style.display = "none");
+          if (editBtn) editBtn.style.display = "none";
+          if (grantBtn) grantBtn.style.display = "none";
+        } else {
+          addBtns.forEach(btn => btn.style.display = "inline-block");
+          if (editBtn) editBtn.style.display = "inline-block";
+          if (grantBtn) grantBtn.style.display = (userRole === "admin") ? "inline-block" : "none";
+        }
+      };
+      window.logout = function() {
+        window.location.reload();
+      };
+
+      /******************* دوال تعديل الأكواد *******************/
+      window.openPermissionsModal = function() {
+        if (userRole !== "admin") return;
+        document.getElementById("permissionsModal").style.display = "block";
+      };
+      window.closePermissionsModal = function() {
+        document.getElementById("permissionsModal").style.display = "none";
+      };
+      window.savePermissions = function() {
+        let adminCode = document.getElementById("newAdminCode").value.trim();
+        let editorCode = document.getElementById("newEditorCode").value.trim();
+        let visitorCode = document.getElementById("newVisitorCode").value.trim();
+        let contactNumber = document.getElementById("newContactNumber").value.trim();
+        let whatsAppNumber = document.getElementById("newWhatsAppNumber").value.trim();
+        document.getElementById("contactLink").href = "tel:" + contactNumber;
+        document.getElementById("whatsAppLink").href = "https://wa.me/" + whatsAppNumber;
+        document.getElementById("whatsAppLink").innerText = "اطلب كود للدخول";
+        localStorage.setItem("adminCode", adminCode);
+        localStorage.setItem("editorCode", editorCode);
+        localStorage.setItem("visitorCode", visitorCode);
+        localStorage.setItem("contactNumber", contactNumber);
+        localStorage.setItem("whatsAppNumber", whatsAppNumber);
+        alert("تم تحديث الأكواد ورقم الهاتف بنجاح!");
+        closePermissionsModal();
+      };
+
+      /******************* معلومات العضو *******************/
+      window.currentMemberElement = null;
+      window.showInfo = function(element) {
+        currentMemberElement = element;
+        const li = element.closest("li");
+        document.getElementById("infoName").innerText = li.dataset.name || "بدون اسم";
+        document.getElementById("infoBirth").innerText = li.dataset.birth || "";
+        document.getElementById("infoDeath").innerText = li.dataset.death || "";
+        document.getElementById("infoLocation").innerText = li.dataset.location || "";
+        document.getElementById("infoImage").src = li.dataset.image || "https://via.placeholder.com/100";
+        document.getElementById("infoBox").style.display = "block";
+        document.getElementById("editForm").style.display = "none";
+      };
+      window.closeInfo = function() {
+        document.getElementById("infoBox").style.display = "none";
+      };
+      window.openEditForm = function() {
+        if (userRole === "visitor") return;
+        const li = currentMemberElement.closest("li");
+        document.getElementById("editName").value = li.dataset.name || "";
+        document.getElementById("editBirth").value = li.dataset.birth || "";
+        document.getElementById("editDeath").value = li.dataset.death || "";
+        document.getElementById("editLocation").value = li.dataset.location || "";
+        document.getElementById("editImageFile").value = "";
+        document.getElementById("editForm").style.display = "block";
+        document.getElementById("editName").focus();
+      };
+      window.closeEditForm = function() {
+        document.getElementById("editForm").style.display = "none";
+      };
+      window.saveEdit = function() {
+        const li = currentMemberElement.closest("li");
+        li.dataset.name = document.getElementById("editName").value.trim() || "بدون اسم";
+        li.dataset.birth = document.getElementById("editBirth").value.trim() || "";
+        li.dataset.death = document.getElementById("editDeath").value.trim() || "";
+        li.dataset.location = document.getElementById("editLocation").value.trim() || "";
+        const fileInput = document.getElementById("editImageFile");
+        if (fileInput.files && fileInput.files[0]) {
+          const file = fileInput.files[0];
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            li.dataset.image = e.target.result;
+            currentMemberElement.innerText = li.dataset.name;
+            showInfo(currentMemberElement);
+            closeEditForm();
+            saveTreeData();
+          };
+          reader.readAsDataURL(file);
+        } else {
+          currentMemberElement.innerText = li.dataset.name;
+          showInfo(currentMemberElement);
+          closeEditForm();
+          saveTreeData();
+        }
+      };
+
+      /******************* حذف العضو *******************/
+      window.confirmDelete = function() {
+        if (confirm("هل أنت متأكد أنك تريد حذف هذا الاسم؟")) {
+          deleteMember();
+        }
+      };
+      window.deleteMember = function() {
+        const li = currentMemberElement.closest("li");
+        const idToDelete = li.getAttribute("data-id");
+        // منع حذف الجذر
+        if (idToDelete == treeData.id) {
+          alert("لا يمكن حذف الجذر");
+          return;
+        }
+        function removeNode(node, id) {
+          if (!node.children) return;
+          node.children = node.children.filter(child => child.id != id);
+          node.children.forEach(child => removeNode(child, id));
+        }
+        removeNode(treeData, idToDelete);
+        saveTreeData();
+        renderTree();
+        closeInfo();
+      };
+
+      /******************* إضافة ابن *******************/
+      window.currentParentLI = null;
+      window.openAddChildForm = function(e, btn) {
+        if (userRole === "visitor") return;
+        e.stopPropagation();
+        currentParentLI = btn.closest("li");
+        document.getElementById("addChildForm").style.display = "block";
+        document.getElementById("childName").focus();
+      };
+      window.closeAddChildForm = function() {
+        document.getElementById("addChildForm").style.display = "none";
+      };
+      window.saveChild = function() {
+        const name = document.getElementById("childName").value.trim();
+        const birth = document.getElementById("childBirth").value.trim();
+        const death = document.getElementById("childDeath").value.trim();
+        const location = document.getElementById("childLocation").value.trim();
+        const image = document.getElementById("childImage").value.trim();
+        if (!name) { alert("الرجاء إدخال الاسم"); return; }
+        const newId = Date.now();
+        function findNode(node, id) {
+          if (node.id == id) return node;
+          for (let i = 0; i < node.children.length; i++){
+            let found = findNode(node.children[i], id);
+            if (found) return found;
+          }
+          return null;
+        }
+        const parentId = currentParentLI.getAttribute("data-id");
+        const parentNode = findNode(treeData, parentId);
+        if (parentNode) {
+          const newChild = {
+            id: newId,
+            name: name,
+            birth: birth,
+            death: death,
+            location: location,
+            image: image || "https://via.placeholder.com/100",
+            children: []
+          };
+          parentNode.children.push(newChild);
+        }
+        saveTreeData();
+        renderTree();
+        document.getElementById("childName").value = "";
+        document.getElementById("childBirth").value = "";
+        document.getElementById("childDeath").value = "";
+        document.getElementById("childLocation").value = "";
+        document.getElementById("childImage").value = "";
+        closeAddChildForm();
+        updatePermissions();
+      };
+
+      /******************* تغيير ألوان الأيقونات *******************/
+      window.toggleColorPanel = function() {
+        var panel = document.getElementById("colorPanel");
+        if (panel.style.display === "none" || panel.style.display === "") {
+          panel.style.display = "flex";
+          panel.style.flexWrap = "wrap";
+          panel.style.justifyContent = "center";
+          panel.style.gap = "10px";
+        } else {
+          panel.style.display = "none";
+        }
+      };
+      window.changeIconColor = function(colorStart, colorEnd) {
+        document.documentElement.style.setProperty('--icon-bg', `linear-gradient(135deg, ${colorStart}, ${colorEnd})`);
+        document.documentElement.style.setProperty('--icon-bg-hover', `linear-gradient(135deg, ${shadeColor(colorStart, -20)}, ${shadeColor(colorEnd, -20)})`);
+      };
+      window.shadeColor = function(color, percent) {
+        let f = parseInt(color.slice(1), 16),
+            t = percent < 0 ? 0 : 255,
+            p = percent < 0 ? percent * -1 : percent;
+        let R = f >> 16, G = f >> 8 & 0x00FF, B = f & 0x0000FF;
+        return "#" + (0x1000000 + (Math.round((t - R) * p / 100) + R) * 0x10000 +
+          (Math.round((t - G) * p / 100) + G) * 0x100 +
+          (Math.round((t - B) * p / 100) + B)).toString(16).slice(1);
+      };
+
+      window.addEventListener('beforeunload', function() {
+        saveTreeData();
+      });
+    });
+  </script>
+</body>
+</html>
